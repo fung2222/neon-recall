@@ -1,7 +1,8 @@
 """Headless smoke test for NEON RECALL.
 Usage: python tests/smoke.py [base_url] [out_dir]   (serve the parent folder: python3 -m http.server 18940)
 Checks: zero console errors, preview -> playing, tapping cards (real pointer events at projected card positions)
-matches / misses, level clear screen + stars, next level, peek, pause, continue after reload, demo autoplay.
+matches / misses, level clear screen + stars, next level, peek, pause, continue after reload, demo autoplay,
+language toggle zh-HK/en + persistence, endless (level 10 milestone -> 11, 6x5 overclock grid at 12).
 """
 import sys, os
 from playwright.sync_api import sync_playwright
@@ -21,10 +22,19 @@ def run(p, name, w, h, mobile):
     pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
     pg.on('pageerror', lambda e: errs.append(str(e)))
     pg.goto(BASE + '?reset=1'); pg.wait_for_timeout(4500)
-    pg.screenshot(path=f'{OUT}/{name}-start.png')
+    pg.screenshot(path=f'{OUT}/{name}-start-en.png')
+    lang = lambda: pg.evaluate('document.documentElement.dataset.lang')
+    check(lang() == 'en' and 'START' in pg.inner_text('#btn-start'), f'{name}: default language en (navigator)')
+    pg.click('#btn-lang'); pg.wait_for_timeout(400)
+    check(lang() == 'zh' and '開始' in pg.inner_text('#btn-start'), f'{name}: toggle -> zh-HK live')
+    pg.reload(); pg.wait_for_timeout(3500)
+    check(lang() == 'zh' and pg.evaluate("localStorage.getItem('cyber.lang')") == 'zh-HK', f'{name}: language persisted')
+    pg.screenshot(path=f'{OUT}/{name}-start-zh.png')
+    if name == 'desktop':
+        pg.click('#btn-lang'); pg.wait_for_timeout(300); check(lang() == 'en', f'{name}: toggle back -> en')
     st = lambda: pg.evaluate('({s: __recall.state, lv: __recall.level, m: __recall.game.matched, p: __recall.game.pairs, miss: __recall.game.misses, score: __recall.game.score, peeks: __recall.peeks})')
     pg.click('#btn-start')
-    for _ in range(60):
+    for _ in range(160):
         if st()['s'] == 'playing': break
         pg.wait_for_timeout(250)
     check(st()['s'] == 'playing', f'{name}: preview -> playing')
@@ -64,6 +74,19 @@ def run(p, name, w, h, mobile):
     pg.wait_for_timeout(2500)
     pg.keyboard.press('p'); pg.wait_for_timeout(300); check(st()['s'] == 'paused', f'{name}: pause')
     pg.keyboard.press('p'); pg.wait_for_timeout(300); check(st()['s'] in ('playing', 'peek'), f'{name}: resume')
+    def wait_state(want, n=60):
+        for _ in range(n):
+            if st()['s'] == want: return
+            pg.wait_for_timeout(250)
+    pg.evaluate('__recall.api.level(10)'); wait_state('playing')
+    s0 = st(); pg.evaluate('__recall.api.clearNow()'); wait_state('clear')
+    check(st()['s'] == 'clear' and st()['peeks'] >= s0['peeks'] + 2, f'{name}: level 10 cleared, milestone peeks ({s0["peeks"]} -> {st()["peeks"]})')
+    pg.click('#btn-next'); pg.wait_for_timeout(900)
+    pg.screenshot(path=f'{OUT}/{name}-endless-milestone.png')
+    wait_state('playing'); check(st()['lv'] == 11, f'{name}: endless level 11 (authored layouts end at 5)')
+    pg.evaluate('__recall.api.level(12)'); wait_state('playing'); pg.wait_for_timeout(600)
+    check(st()['p'] == 15, f'{name}: level 12 overclock grid 6x5 ({st()["p"]} pairs)')
+    pg.screenshot(path=f'{OUT}/{name}-endless-6x5.png')
     pg.goto(BASE); pg.wait_for_timeout(3500)
     check(pg.is_visible('#btn-continue'), f'{name}: CONTINUE offered after reload')
     pg.goto(BASE + '?demo=1'); pg.wait_for_timeout(22000)

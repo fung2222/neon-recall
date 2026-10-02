@@ -1,5 +1,5 @@
 // Pure memory-match rules (no DOM / three). Slots are grid positions; cards can move between slots (glitch swap).
-import { layoutFor, MATCH_POINTS, COMBO_CAP, STAR3, STAR2, STAR_BONUS, GLITCH_FROM_LEVEL, GLITCH_CHANCE } from './config.js';
+import { layoutFor, MATCH_POINTS, COMBO_CAP, STAR3, STAR2, STAR_BONUS, glitchChanceFor } from './config.js';
 
 export function makeRng(seed) { let a = seed >>> 0 || 1; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
@@ -41,7 +41,7 @@ export class RecallGame {
     if (this.open.length < 2) return { ids: [], swap: null };
     const ids = this.open.slice(); for (const i of ids) this.cards[i].state = 'down'; this.open = [];
     let swap = null;
-    if (this.level >= GLITCH_FROM_LEVEL && this.rng() < GLITCH_CHANCE) {
+    if (this.rng() < glitchChanceFor(this.level)) {
       const down = this.cards.filter(c => c.state === 'down');
       if (down.length >= 4) {
         const [x, y] = this.shuffle(down.slice()).slice(0, 2);

@@ -3,10 +3,15 @@ export const GAME_ID = 'neon-recall';
 
 // Level layouts: [long side, short side]. Portrait screens use short side as columns.
 export const LAYOUTS = [[4, 2], [4, 3], [4, 4], [5, 4], [6, 4]];
-export const layoutFor = (level) => LAYOUTS[Math.min(level, LAYOUTS.length) - 1];
+// Endless: authored layouts end at level 5 (6×4). From ENDLESS_BIG_FROM every 3rd level is a 6×5 "overclock" grid (15 pairs, max).
+export const ENDLESS_BIG_FROM = 12;
+export const layoutFor = (level) => (level >= ENDLESS_BIG_FROM && level % 3 === 0) ? [6, 5] : LAYOUTS[Math.min(level, LAYOUTS.length) - 1];
 export const previewFor = (level) => Math.max(0.7, 2.2 - (level - 1) * 0.18);   // seconds all cards are shown at level start
 export const GLITCH_FROM_LEVEL = 7;      // from this level a miss may "glitch-swap" two hidden cards
 export const GLITCH_CHANCE = 0.35;
+export const glitchChanceFor = (level) => level < GLITCH_FROM_LEVEL ? 0 : Math.min(0.6, GLITCH_CHANCE + (level - GLITCH_FROM_LEVEL) * 0.01);   // endless ramp, capped
+export const MILESTONE_EVERY = 10;      // every 10 cleared levels: bonus score + peeks + district theme shift
+export const milestoneReward = (level) => ({ pts: 1000 * (level / MILESTONE_EVERY), peeks: 2 });
 
 // Scoring (no fail, no timer pressure)
 export const MATCH_POINTS = 100;         // x combo multiplier (1, 2, 3 … capped)

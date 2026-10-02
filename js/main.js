@@ -1,7 +1,8 @@
 // NEON RECALL 霓虹記憶 — controller: levels, preview, flips, matches, glitch swaps, peek, stars, demo AI, camera, saves.
 import * as THREE from 'three';
-import { flags, createStore, createStage, ThemeController, themeFor, U, Particles, Shockwaves, FxState, NeonCity, createInput, CyberUI, Platform, createAds } from 'cyber-kit';
-import { GAME_ID, previewFor, PEEK_START, PEEK_EVERY, PEEK_REWARD, PEEK_TIME, T_FLIP, T_MISS_HOLD, AI_STEP, AI_FORGET, BOARD_Y, ADS } from './config.js';
+import { i18n, t, themeLabel, flags, createStore, createStage, ThemeController, themeFor, U, Particles, Shockwaves, FxState, NeonCity, createInput, CyberUI, Platform, createAds } from 'cyber-kit';
+import { GAME_ID, previewFor, PEEK_START, PEEK_EVERY, PEEK_REWARD, PEEK_TIME, T_FLIP, T_MISS_HOLD, AI_STEP, AI_FORGET, BOARD_Y, ADS, LAYOUTS, MILESTONE_EVERY, milestoneReward } from './config.js';
+import './strings.js';
 import { RecallGame, makeRng } from './logic.js';
 import { CardTable } from './cards.js';
 import { ICONS } from './icons.js';
@@ -31,7 +32,7 @@ const S = {
   cursor: 0, portrait: stage.width / stage.height < 0.9, pausedFrom: null,
 };
 window.__recall = S;  // test hook (tests/smoke.py)
-const later = (t, fn) => S.timers.push({ t, fn });
+const later = (delay, fn) => S.timers.push({ t: delay, fn });
 const isPortrait = () => stage.width / stage.height < 0.9;
 
 // ---------------------------------------------------------------- saves
@@ -49,7 +50,7 @@ function updateHUD() {
   ui.setText('hud-combo', '×' + g.combo);
   ui.setText('hud-pairs', `${g.matched} / ${g.pairs}`);
   $('hud-progress').style.width = (g.pairs ? g.matched / g.pairs * 100 : 0).toFixed(1) + '%';
-  const th = themeFor(S.level); ui.setText('hud-zone-name', `${th.name} · ${th.en} · ${g.long}×${g.short}`);
+  const th = themeFor(S.level); ui.setText('hud-zone-name', `${themeLabel(th)} · ${g.long}×${g.short}${S.level > LAYOUTS.length ? ' · ' + t('endless') : ''}`);
   const b = $('peek-badge');
   if (S.peeks > 0) { b.textContent = S.peeks; b.classList.remove('ad'); } else { b.textContent = ads.isNative ? 'AD' : '+' + PEEK_REWARD; b.classList.add('ad'); }
   $('btn-peek').classList.toggle('disabled', S.state !== 'playing' || S.demo);
@@ -57,7 +58,7 @@ function updateHUD() {
 function refreshStart() {
   const p = loadProgress();
   $('btn-continue').classList.toggle('hidden', !p || p.level <= 1);
-  if (p) ui.setText('continue-sub', `CONTINUE · 第 ${p.level} 關 · ${p.score.toLocaleString('en-US')} 分`);
+  if (p) ui.setText('continue-sub', t('continueS', { level: p.level, score: p.score.toLocaleString('en-US') }));
   ui.setText('start-best', store.best.toLocaleString('en-US'));
   ui.setText('start-level', store.getNum('maxLevel', 0) || '—');
   ui.setText('start-stars', totalStars());
@@ -80,7 +81,8 @@ function startLevel(level, { attract = false } = {}) {
   S.cursor = 0; table.setHover(-1);
   if (attract) { S.state = 'attract'; S.previewT = 2.2; S.aiT = -1; memorise(0.5); return; }
   setState('preview'); S.previewT = previewFor(level) + 0.7;
-  ui.banner(`第 ${level} 關`, `LEVEL ${level} · ${S.game.long}×${S.game.short}`, '記住佢哋！ MEMORISE');
+  if (S.milestone) { const m = S.milestone; S.milestone = null; ui.banner(t('milestone', { n: m.n }), t('milestoneS', { pts: m.pts.toLocaleString('en-US'), peeks: m.peeks }), t('memorise')); }
+  else ui.banner(t('levelN', { n: level }), `${S.game.long}×${S.game.short}${level > LAYOUTS.length ? ' · ' + t('endless') : ''}`, t('memorise'));
   memorise(0.55);
   audio.whoosh(0.05);
 }
@@ -110,7 +112,7 @@ function onMatch(r) {
   if (S.state === 'attract') return;
   audio.match(r.combo); Platform.haptic('medium');
   const mid = table.worldPos(r.ids[0]).add(table.worldPos(r.ids[1])).multiplyScalar(0.5); mid.y += 0.8;
-  const sp = stage.toScreen(mid); ui.popup(sp.x, sp.y, '+' + r.gained, r.combo > 1 ? `COMBO ×${r.combo}` : ic.zh, r.combo >= 3 ? 'big' : '');
+  const sp = stage.toScreen(mid); ui.popup(sp.x, sp.y, '+' + r.gained, r.combo > 1 ? `COMBO ×${r.combo}` : t('icon.' + ic.id), r.combo >= 3 ? 'big' : '');
   if (r.combo >= 3) fx.kick({ aberr: 0.5, trauma: 0.08 });
   city.pulse(mid.x * 3, mid.z * 3 - 4, 0.6);
   ui.bump('hud-score'); ui.bump('hud-combo');
@@ -124,7 +126,7 @@ function resolveMiss() {
   if (h.swap) {
     table.resyncSlots(S.game); table.swap(h.swap);
     for (const id of h.swap) if (Math.random() < 0.5) S.mem.delete(id);
-    if (S.state !== 'attract') { audio.glitch(); fx.kick({ glitch: 0.7, aberr: 0.8 }); ui.toast('⚠ 數據錯亂！兩張卡互換咗位置 · GLITCH SWAP', 1600); }
+    if (S.state !== 'attract') { audio.glitch(); fx.kick({ glitch: 0.7, aberr: 0.8 }); ui.toast(t('glitch'), 1600); }
   }
 }
 
@@ -132,11 +134,11 @@ async function peek() {
   if (S.state !== 'playing' || S.demo || ui.modalOpen) return;
   if (S.peeks <= 0) {
     const ok = await ui.confirm(ads.isNative
-      ? { kicker: 'PEEK', title: `補充 ${PEEK_REWARD} 次透視？`, text: '睇一段自願觀看嘅獎勵廣告即可補充。唔睇都可以照玩。', ok: '睇廣告', okSmall: `WATCH AD · +${PEEK_REWARD}`, cancel: '唔使喇', cancelSmall: 'NO THANKS' }
-      : { kicker: 'PEEK', title: `補充 ${PEEK_REWARD} 次透視`, text: '網頁版免費補充。(App 版會用自願觀看嘅獎勵廣告。)', ok: '領取', okSmall: `CLAIM · +${PEEK_REWARD}`, cancel: '唔使喇', cancelSmall: 'NO THANKS' });
+      ? { kicker: 'PEEK', title: t('peekMoreQ', { n: PEEK_REWARD }), text: t('peekAdText'), ok: t('kit.watchAd'), okSmall: `+${PEEK_REWARD}`, cancel: t('kit.noThanks'), cancelSmall: '' }
+      : { kicker: 'PEEK', title: t('peekMore', { n: PEEK_REWARD }), text: t('peekFreeText'), ok: t('claim'), okSmall: `+${PEEK_REWARD}`, cancel: t('kit.noThanks'), cancelSmall: '' });
     if (!ok) return;
     const r = await ads.rewarded('peek');
-    if (!r.rewarded) { ui.toast('冇攞到獎勵 · NO REWARD'); return; }
+    if (!r.rewarded) { ui.toast(t('noReward')); return; }
     S.peeks += PEEK_REWARD; updateHUD(); saveProgress();
     if (S.state !== 'playing') return;
   }
@@ -158,12 +160,14 @@ function levelClear() {
   if (S.demo) { later(2.2, () => startLevel(S.level >= 5 ? 1 : S.level + 1)); setState('playing'); return; }
   const rec = getStars(); if ((rec[S.level] || 0) < stars) { rec[S.level] = stars; store.setJSON('stars', rec); }
   store.submitBest(g.score);
+  const firstClear = S.level + 1 > store.getNum('maxLevel', 0);
   store.setNum('maxLevel', Math.max(store.getNum('maxLevel', 0), S.level + 1));
   S.clearInfo = { stars, bonus };
-  if (S.level % PEEK_EVERY === 0) { S.peeks++; ui.toast('透視 +1 · PEEK +1', 1800); }
+  if (S.level % PEEK_EVERY === 0) { S.peeks++; ui.toast(t('peekPlus'), 1800); }
+  if (S.level % MILESTONE_EVERY === 0 && firstClear) { const m = milestoneReward(S.level); g.score += m.pts; S.peeks += m.peeks; S.milestone = { n: S.level, ...m }; }
   const lv = S.level; S.level = lv + 1; saveProgress(); S.level = lv;
   later(1.1, () => {
-    ui.setText("clear-kicker", `LV ${S.level} CLEAR · +${bonus} ★`);
+    ui.setText('clear-kicker', t('clearKicker', { n: S.level, bonus }));
     ui.setText('clear-score', g.levelScore.toLocaleString('en-US')); ui.setText('clear-misses', g.misses);
     ui.setText('clear-combo', '×' + g.maxCombo); ui.setText('clear-time', Math.round(S.levelTime) + 's');
     const st = [...$('clear-stars').children]; st.forEach(e => e.classList.remove('on', 'show'));
@@ -172,7 +176,7 @@ function levelClear() {
   });
 }
 async function nextLevel() { if (S.state !== 'clear') return; audio.click(); await ads.naturalBreak('level'); startLevel(S.level + 1); }
-async function replayLevel() { if (S.state !== 'clear') return; audio.click(); S.game.score -= S.game.levelScore; await ads.naturalBreak('level'); startLevel(S.level); }
+async function replayLevel() { if (S.state !== 'clear') return; S.milestone = null; audio.click(); S.game.score -= S.game.levelScore; await ads.naturalBreak('level'); startLevel(S.level); }
 async function clearToMenu() { if (S.state !== 'clear') return; await ads.naturalBreak('level'); showAttract(); }
 
 function beginRun(resume) {
@@ -188,7 +192,7 @@ function resume() { if (S.state !== 'paused') return; setState(S.pausedFrom || '
 function toMenu() { saveProgress(); audio.back(); showAttract(); }
 async function restartLevel() {
   if (!['playing', 'preview'].includes(S.state) || ui.modalOpen || S.demo) return;
-  const ok = await ui.confirm({ kicker: 'RESTART', title: '重玩此關？', text: '今關得分會清除。', ok: '重玩', okSmall: 'RESTART LEVEL', cancel: '繼續玩', cancelSmall: 'KEEP PLAYING' });
+  const ok = await ui.confirm({ kicker: 'RESTART', title: t('restartQ'), text: t('restartText'), ok: t('restart'), okSmall: '', cancel: t('keepPlaying'), cancelSmall: '' });
   if (!ok) return; S.game.score -= S.game.levelScore; startLevel(S.level);
 }
 
@@ -244,6 +248,8 @@ ui.on('btn-continue', () => { audio.init(); beginRun(true); });
 ui.on('btn-resume', resume); ui.on('btn-quit', toMenu); ui.on('btn-pause', pause);
 ui.on('btn-mute', () => { audio.init(); ui.setMuted(audio.toggleMute()); });
 ui.on('btn-peek', peek); ui.on('btn-restart', restartLevel);
+i18n.bindToggle($('btn-lang')); i18n.bindToggle($('btn-lang2'));
+i18n.onChange(() => { updateHUD(); if (S.state === 'attract') refreshStart(); });
 ui.on('btn-next', nextLevel); ui.on('btn-replay', replayLevel); ui.on('btn-menu', clearToMenu);
 Platform.onBack(() => {
   if (ui.closeModal()) return true;
@@ -253,11 +259,11 @@ Platform.onBack(() => {
   return false;
 });
 Platform.onPause(() => { saveProgress(); if (!S.demo) pause(); });
-S.api = { flip: (id) => tryFlip(id), peek, screenOf: (id) => stage.toScreen(table.worldPos(id)), clearNow: () => { for (const c of S.game.cards) if (c.state !== 'matched') { c.state = 'matched'; } S.game.matched = S.game.pairs; levelClear(); } };
+S.api = { level: (n) => { S.timers = []; startLevel(n); }, flip: (id) => tryFlip(id), peek, screenOf: (id) => stage.toScreen(table.worldPos(id)), clearNow: () => { for (const c of S.game.cards) if (c.state !== 'matched') { c.state = 'matched'; } S.game.matched = S.game.pairs; levelClear(); } };
 
 // ---------------------------------------------------------------- camera
 const camPos = new THREE.Vector3(0, 20, 14), camLook = new THREE.Vector3(0, BOARD_Y, 0), tP = new THREE.Vector3(), tL = new THREE.Vector3();
-function frameCamera(dt, t, instant = false) {
+function frameCamera(dt, now, instant = false) {
   const aspect = stage.width / stage.height, portrait = aspect < 0.9, attract = S.state === 'attract';
   const vfov = portrait ? 50 : 42; camera.fov = vfov + fx.fovKick * 3; camera.updateProjectionMatrix();
   const pitch = THREE.MathUtils.degToRad(attract ? (portrait ? 52 : 42) : (portrait ? 66 : 60));
@@ -266,19 +272,19 @@ function frameCamera(dt, t, instant = false) {
   const usable = portrait ? 0.62 : 0.72;
   const dW = hw / (tanH * (portrait ? 0.96 : 0.9)) + hd * Math.cos(pitch);
   const dH = hd * Math.sin(pitch) / (tanV * usable) + hd * Math.cos(pitch);
-  let d = Math.max(dW, dH), yaw = Math.sin(t * 0.13) * 0.03, lx = 0, lz = portrait ? -0.3 : 0;
-  if (attract) { yaw = Math.sin(t * 0.12) * 0.4; d *= portrait ? 1.1 : 1.3; if (!portrait) lx = -hw * 0.95; else lz = hd * 0.5; }
+  let d = Math.max(dW, dH), yaw = Math.sin(now * 0.13) * 0.03, lx = 0, lz = portrait ? -0.3 : 0;
+  if (attract) { yaw = Math.sin(now * 0.12) * 0.4; d *= portrait ? 1.1 : 1.3; if (!portrait) lx = -hw * 0.95; else lz = hd * 0.5; }
   tL.set(lx, BOARD_Y, lz);
   tP.set(Math.sin(yaw) * Math.cos(pitch) * d, Math.sin(pitch) * d, Math.cos(yaw) * Math.cos(pitch) * d).add(tL);
   if (attract && !portrait) tP.x += lx;
   const k = instant ? 1 : 1 - Math.exp(-dt * 3);
   camPos.lerp(tP, k); camLook.lerp(tL, k); camera.position.copy(camPos); camera.lookAt(camLook);
-  fx.shake(camera, t, 0.6);
+  fx.shake(camera, now, 0.6);
 }
 
 // ---------------------------------------------------------------- loop
-function tick(dt, t) {
-  U.uTime.value = t; theme.update(dt); fx.update(dt);
+function tick(dt, now) {
+  U.uTime.value = now; theme.update(dt); fx.update(dt);
   const running = S.state !== 'paused';
   if (running) {
     S.stateT += dt;
@@ -294,8 +300,8 @@ function tick(dt, t) {
     if (S.state === 'playing' && S.demo && S.missT <= 0) { S.aiT += dt; if (S.aiT > AI_STEP) { S.aiT = 0; aiStep(); } }
   }
   if (isPortrait() !== S.portrait && S.game.cards) { S.portrait = isPortrait(); table.relayout(S.game, S.portrait); }
-  table.update(dt, t); particles.update(dt); waves.update(dt);
-  city.update(t, dt, camera); frameCamera(dt, t); fx.applyPost(stage, t); ui.tick(dt);
+  table.update(dt, now); particles.update(dt); waves.update(dt);
+  city.update(now, dt, camera); frameCamera(dt, now); fx.applyPost(stage, now); ui.tick(dt);
   stage.render(dt);
 }
 
@@ -308,4 +314,4 @@ async function boot() {
   if (flags.fps) $('fps').classList.remove('hidden');
   ads.init().catch(() => {});
 }
-boot().catch((e) => { console.error(e); ui.fatal('載入失敗 Failed to start: ' + e.message); });
+boot().catch((e) => { console.error(e); ui.fatal(t('fatal') + ': ' + e.message); });

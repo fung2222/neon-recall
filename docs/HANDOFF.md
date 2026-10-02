@@ -20,9 +20,12 @@ Tap card · mouse click (hover highlight) · arrows move a cursor + Enter/Space 
 ## 3. Tuning constants (`js/config.js`)
 | Constant | Value |
 |---|---|
-| `LAYOUTS` | [4,2] [4,3] [4,4] [5,4] [6,4] |
+| `LAYOUTS` | [4,2] [4,3] [4,4] [5,4] [6,4] (authored; level ≥ 5 stays 6×4) |
+| `ENDLESS_BIG_FROM` | 12 — from here every 3rd level is a 6×5 overclock grid (15 pairs, the cap) |
 | `previewFor(level)` | max(0.7, 2.2 − 0.18·(level−1)) s |
 | `GLITCH_FROM_LEVEL` / `GLITCH_CHANCE` | 7 / 0.35 |
+| `glitchChanceFor(level)` | 0.35 + 1 %/level after 7, capped at 0.6 (endless) |
+| `MILESTONE_EVERY` / `milestoneReward(level)` | 10 / +1000×(level/10) pts, +2 peeks — first clear only (no replay farming); banner shown at the next level start |
 | `MATCH_POINTS` / `COMBO_CAP` / `STAR_BONUS` | 100 / 5 / 150 |
 | `STAR3` / `STAR2` | 0.5 / 1.25 (misses per pair) |
 | `PEEK_START` / `PEEK_EVERY` / `PEEK_REWARD` / `PEEK_TIME` | 1 / 3 / 2 / 1.4 s |
@@ -30,6 +33,12 @@ Tap card · mouse click (hover highlight) · arrows move a cursor + Enter/Space 
 | `AI_STEP` / `AI_FORGET` | 0.55 s / 0.12 |
 | `CARD_W` / `CARD_D` / `GAP` / `BOARD_Y` | 1.0 / 1.3 / 0.2 / 3.6 |
 | `ADS` | interstitial cooldown 180 s, every 3rd level clear, 150 s grace |
+
+## 3b. Endless mode & i18n (v1.1)
+- Levels are infinite; there is no final level. HUD zone line + level banner show `ENDLESS` past level 5. Best level (`maxLevel`) is the endless record on the start screen.
+- Test hook: `__recall.api.level(n)` jumps to level n.
+- Strings: `js/strings.js` (cyber-kit v0.2.1 i18n, incl. 16 icon names `icon.*`); HTML `data-i18n*`; toggles `#btn-lang` / `#btn-lang2`; `?lang=en|zh`.
+- Natural ad breaks unchanged: clear screen buttons (≈ every 3 levels, capped). The milestone banner is never an ad point.
 
 ## 4. File map
 ```
@@ -44,11 +53,11 @@ js/main.js        states attract/preview/playing/peek/paused/clear, input + rayc
 vendor/cyber-kit  cyber-kit v0.1.0
 tests/            logic.test.mjs, smoke.py
 ```
-Test hook: `window.__recall` (`state, level, game, peeks, api.flip/peek/screenOf/clearNow`).
+Test hook: `window.__recall` (`state, level, game, peeks, api.level/flip/peek/screenOf/clearNow`).
 
 ## 5. Tests
-`node tests/logic.test.mjs` (6 rule tests) · `python tests/smoke.py [url] [out]` — real taps on projected card positions at 412×915 (touch) and 1280×800: preview→playing, match, miss, level clear + stars, next level, peek, pause/resume, continue after reload, demo AI, zero console errors.
-Last run 2026-10-02: ALL PASSED.
+`node tests/logic.test.mjs` (6 rule tests) · `python tests/smoke.py [url] [out]` — real taps on projected card positions at 412×915 (touch) and 1280×800: preview→playing, match, miss, level clear + stars, next level, peek, pause/resume, continue after reload, demo AI, language toggle/persist, endless level 10 milestone → 11 and 6×5 grid at 12, zero console errors.
+Last run 2026-10-02 (v1.1): logic 6/6, smoke ALL PASSED.
 
 ## 6. Android packaging
 Same as DATA FUSE (Capacitor 8, `@capacitor-community/admob` v8, app id suggestion `hk.fung2222.neonrecall`). Copy `index.html css js vendor privacy.html` into `www/`.
