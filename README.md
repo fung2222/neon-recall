@@ -33,7 +33,7 @@
 `?demo=1` AI 自動玩 · `?lang=en|zh` · `?level=5` 由第 5 關開始 · `?seed=1` · `?fps=1` · `?quality=low` · `?adsim=1` · `?reset=1`
 
 ## 技術 Tech
-Three.js r169 + [cyber-kit](https://github.com/fung2222/cyber-kit) v0.2.1（`vendor/cyber-kit/`），純 ES modules，冇 build step，可離線運行。16 個原創霓虹圖示全部用 canvas 程式繪製。
+Three.js r169 + [cyber-kit](https://github.com/fung2222/cyber-kit) v0.3.0（`vendor/cyber-kit/`），純 ES modules，冇 build step，可離線運行。16 個原創霓虹圖示全部用 canvas 程式繪製。
 
 ## 開發 Development
 ```bash

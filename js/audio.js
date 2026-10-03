@@ -2,7 +2,7 @@
 import { SynthAudio, mtof } from 'cyber-kit/audio/synth.js';
 const PENTA = [0, 2, 4, 7, 9, 12, 14, 16];
 export class RecallAudio extends SynthAudio {
-  constructor(store) { super({ store, music: 'chill' }); }
+  constructor(store) { super({ store, music: 'chill', sfxTrimDb: -3.3 }); }
   flip() { this.noiseHit({ dur: 0.07, vol: 0.04, type: 'bandpass', f: 2600, f2: 5200, q: 2, a: 0.004 }); this.osc({ type: 'triangle', f: 900, f2: 1300, dur: 0.05, vol: 0.03 }); }
   match(combo = 1) {
     if (!this.ctx) return;
