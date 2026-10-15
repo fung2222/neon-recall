@@ -51,4 +51,4 @@
 .stars i.on { color: var(--c3); text-shadow: 0 0 10px var(--c3), 0 0 26px var(--c3); }
 .combo-pop { color: var(--c3) !important; }
 
-/* hub return */ #btn-arcade-menu { margin-top: 10px; animation: none; }
+/* hub return */ #btn-arcade-menu { margin-top: 0; animation: none; }
