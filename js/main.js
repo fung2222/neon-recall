@@ -1,6 +1,6 @@
 // NEON RECALL 霓虹記憶 — controller: levels, preview, flips, matches, glitch swaps, peek, stars, demo AI, camera, saves.
 import * as THREE from 'three';
-import { i18n, t, themeLabel, flags, createStore, createStage, ThemeController, themeFor, U, Particles, Shockwaves, FxState, NeonCity, createInput, CyberUI, Platform, createAds } from 'cyber-kit';
+import { i18n, t, themeLabel, flags, createStore, createStage, ThemeController, themeFor, U, Particles, Shockwaves, FxState, NeonCity, createInput, CyberUI, Platform, createAds, readHub, returnToHub, shouldShowArcadeMenu} from 'cyber-kit';
 import { GAME_ID, previewFor, PEEK_START, PEEK_EVERY, PEEK_REWARD, PEEK_TIME, T_FLIP, T_MISS_HOLD, AI_STEP, AI_FORGET, BOARD_Y, ADS, LAYOUTS, MILESTONE_EVERY, milestoneReward } from './config.js';
 import './strings.js';
 import { RecallGame, makeRng } from './logic.js';
@@ -245,6 +245,10 @@ createInput({
 }, { swipe: 'once', threshold: 40 });
 $('scene').addEventListener('pointermove', (e) => { if (e.pointerType !== 'mouse' || S.state !== 'playing' || S.demo) return; const id = pickAt(e.clientX, e.clientY); table.setHover(id); document.body.style.cursor = id >= 0 && S.game.cards[id].state === 'down' ? 'pointer' : ''; });
 ui.on('btn-start', () => { audio.init(); beginRun(false); });
+const __hub = readHub();
+if (shouldShowArcadeMenu(__hub)) { const b = document.getElementById('btn-arcade-menu'); if (b) b.classList.remove('hidden'); }
+ui.on('btn-arcade-menu', () => { try { audio.back(); } catch {} returnToHub({ gameId: 'neon-recall', openStore: false }); });
+
 ui.on('btn-continue', () => { audio.init(); beginRun(true); });
 ui.on('btn-resume', resume); ui.on('btn-quit', toMenu); ui.on('btn-pause', pause);
 ui.on('btn-mute', () => { audio.init(); ui.setMuted(audio.toggleMute()); });
