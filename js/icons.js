@@ -1,4 +1,4 @@
-// 16 original neon line icons drawn on canvas (no fonts / emoji / third-party art). Each -> CanvasTexture.
+// 16 original neon line icons + 1 wild (event pair) drawn on canvas (no fonts / emoji / third-party art). Each -> CanvasTexture.
 import * as THREE from 'three';
 
 export const ICONS = [
@@ -10,6 +10,7 @@ export const ICONS = [
   { id: 'key', zh: '密鑰', color: '#b6ff3b' }, { id: 'note', zh: '音符', color: '#5cffa1' },
   { id: 'moon', zh: '月亮', color: '#ffe9a8' }, { id: 'drone', zh: '無人機', color: '#2bd8ff' },
   { id: 'tram', zh: '叮叮', color: '#3bff6b' }, { id: 'umbrella', zh: '雨傘', color: '#d36bff' },
+  { id: 'wild', zh: '霓虹野卡', color: '#ffe14a' },
 ];
 
 const P = Math.PI;
@@ -30,6 +31,17 @@ const draw = {
   drone(c) { c.strokeRect(100, 112, 56, 32); for (const [x, y] of [[62, 82], [194, 82], [62, 174], [194, 174]]) { c.beginPath(); c.ellipse(x, y, 30, 9, 0, 0, 2 * P); c.stroke(); c.beginPath(); c.moveTo(x, y); c.lineTo(x < 128 ? 100 : 156, y < 128 ? 112 : 144); c.stroke(); } c.beginPath(); c.arc(128, 128, 6, 0, 2 * P); c.fill(); },
   tram(c) { c.strokeRect(64, 64, 128, 132); c.beginPath(); c.moveTo(64, 112); c.lineTo(192, 112); c.moveTo(64, 160); c.lineTo(192, 160); c.moveTo(106, 64); c.lineTo(106, 112); c.moveTo(150, 64); c.lineTo(150, 112); c.moveTo(128, 64); c.lineTo(128, 34); c.lineTo(168, 20); c.stroke(); for (const x of [92, 164]) { c.beginPath(); c.arc(x, 212, 12, 0, 2 * P); c.stroke(); } },
   umbrella(c) { c.beginPath(); c.moveTo(36, 120); c.quadraticCurveTo(128, 10, 220, 120); c.quadraticCurveTo(197, 104, 174, 120); c.quadraticCurveTo(151, 104, 128, 120); c.quadraticCurveTo(105, 104, 82, 120); c.quadraticCurveTo(59, 104, 36, 120); c.stroke(); c.beginPath(); c.moveTo(128, 120); c.lineTo(128, 204); c.arc(110, 204, 18, 0, P); c.stroke(); for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(60 + i * 46, 160 + (i % 2) * 20); c.lineTo(52 + i * 46, 182 + (i % 2) * 20); c.stroke(); } },
+  wild(c) {
+    // hex + spark — neon wild event pair
+    c.beginPath();
+    for (let i = 0; i < 6; i++) { const a = -P / 2 + i * P / 3; const x = 128 + Math.cos(a) * 78, y = 128 + Math.sin(a) * 78; i ? c.lineTo(x, y) : c.moveTo(x, y); }
+    c.closePath(); c.stroke();
+    c.beginPath(); c.arc(128, 128, 28, 0, 2 * P); c.stroke();
+    for (const a of [0, P / 2, P / 4, -P / 4]) {
+      c.beginPath(); c.moveTo(128 + Math.cos(a) * 40, 128 + Math.sin(a) * 40); c.lineTo(128 + Math.cos(a) * 96, 128 + Math.sin(a) * 96); c.stroke();
+    }
+    c.beginPath(); c.moveTo(128, 70); c.lineTo(140, 110); c.lineTo(180, 110); c.lineTo(148, 136); c.lineTo(160, 176); c.lineTo(128, 152); c.lineTo(96, 176); c.lineTo(108, 136); c.lineTo(76, 110); c.lineTo(116, 110); c.closePath(); c.stroke();
+  },
 };
 
 const cache = new Map();

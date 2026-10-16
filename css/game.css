@@ -52,3 +52,50 @@
 .combo-pop { color: var(--c3) !important; }
 
 /* hub return */ #btn-arcade-menu { margin-top: 0; animation: none; }
+
+/* ---- polish + modifiers (v1.2) ---- */
+.mod-chip {
+  margin-top: 8px; padding: 6px 12px; display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+  background: rgba(10,4,30,.55); border: 1px solid color-mix(in srgb, var(--c3) 55%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--c3) 30%, transparent);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+.mod-chip b { font-family: var(--font-zh); font-size: 13px; letter-spacing: 3px; color: var(--c3); text-shadow: 0 0 8px var(--c3); }
+.mod-chip small { font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 2px; color: color-mix(in srgb, var(--c1) 80%, white); opacity: .85; max-width: 260px; text-align: center; }
+.mod-chip.hidden { display: none; }
+.mod-chip.twin { border-color: color-mix(in srgb, var(--c1) 70%, transparent); }
+.mod-chip.drift { border-color: color-mix(in srgb, #ff2bd6 70%, transparent); }
+.mod-chip.wild { border-color: color-mix(in srgb, #ffe14a 70%, transparent); }
+.mod-chip.surge { border-color: color-mix(in srgb, #3bff6b 70%, transparent); }
+
+.df-undo { flex-wrap: wrap; height: auto; min-height: 52px; padding-bottom: 10px; }
+.peek-meter { position: absolute; left: 10px; right: 10px; bottom: 4px; height: 3px; background: rgba(255,255,255,.12); overflow: hidden; pointer-events: none; }
+#peek-fill { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--c1), var(--c3)); box-shadow: 0 0 6px var(--c3); transition: width .12s linear; }
+.df-undo.overload { border-color: color-mix(in srgb, var(--c3) 85%, transparent); box-shadow: 0 0 22px var(--c3), inset 0 0 16px color-mix(in srgb, var(--c3) 35%, transparent); }
+.df-undo.overload #peek-fill { background: linear-gradient(90deg, var(--c3), #ffe14a); }
+.df-undo.charging #peek-fill { width: var(--charge, 0%); }
+
+#btn-hint.off svg { opacity: .35; filter: none; }
+#btn-hint svg { fill: none; stroke: var(--c1); }
+
+.popup.combo-pop, .popup.combo { color: var(--c3) !important; text-shadow: 0 0 8px var(--c3), 0 0 18px var(--c2); }
+.popup.perfect { color: #ffe14a; text-shadow: 0 0 8px #ffe14a, 0 0 20px var(--c3); font-size: 26px; }
+.popup.wild { color: #ffe14a; text-shadow: 0 0 10px #ffe14a, 0 0 22px #ff2bd6; font-size: 28px; }
+.popup.clearing { color: #fff; font-size: 28px; text-shadow: 0 0 10px var(--c1), 0 0 24px var(--c3); }
+.popup.combo-toast {
+  font-size: 18px; letter-spacing: 4px; color: var(--c3);
+  text-shadow: 0 0 10px var(--c3), 0 0 22px var(--c2);
+  animation: comboToast 1.05s ease-out forwards;
+}
+@keyframes comboToast {
+  0% { opacity: 0; transform: translate(-50%, -20%) scale(.7); }
+  18% { opacity: 1; transform: translate(-50%, -70%) scale(1.25); }
+  100% { opacity: 0; transform: translate(-50%, -200%) scale(1); }
+}
+#hud-combo.hot { color: var(--c3); text-shadow: 0 0 10px var(--c3), 0 0 20px var(--c2); }
+
+@media (max-width: 760px) {
+  .mod-chip { margin-top: 4px; padding: 4px 10px; }
+  .mod-chip b { font-size: 11px; }
+  .mod-chip small { font-size: 7px; max-width: 200px; }
+}

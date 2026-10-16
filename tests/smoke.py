@@ -34,7 +34,7 @@ def run(p, name, w, h, mobile):
         pg.click('#btn-lang'); pg.wait_for_timeout(300); check(lang() == 'en', f'{name}: toggle back -> en')
     st = lambda: pg.evaluate('({s: __recall.state, lv: __recall.level, m: __recall.game.matched, p: __recall.game.pairs, miss: __recall.game.misses, score: __recall.game.score, peeks: __recall.peeks})')
     pg.click('#btn-start')
-    for _ in range(160):
+    for _ in range(200):
         if st()['s'] == 'playing': break
         pg.wait_for_timeout(250)
     check(st()['s'] == 'playing', f'{name}: preview -> playing')
@@ -58,16 +58,16 @@ def run(p, name, w, h, mobile):
         if c['id'] in done: continue
         m = next(d for d in rest if d['icon'] == c['icon'] and d['id'] != c['id'])
         tap(c['id']); tap(m['id']); done |= {c['id'], m['id']}
-    for _ in range(40):
+    for _ in range(90):
         if st()['s'] == 'clear': break
         pg.wait_for_timeout(250)
     check(st()['s'] == 'clear', f'{name}: level clear screen')
     pg.wait_for_timeout(1200); pg.screenshot(path=f'{OUT}/{name}-clear.png')
     pg.click('#btn-next')
-    for _ in range(60):
-        if st()['s'] == 'playing': break
+    for _ in range(200):
+        if st()['s'] == 'playing' and st()['lv'] == 2: break
         pg.wait_for_timeout(250)
-    check(st()['lv'] == 2 and st()['s'] == 'playing', f'{name}: next level ({st()["lv"]})')
+    check(st()['lv'] == 2 and st()['s'] == 'playing', f'{name}: next level ({st()["lv"]}/{st()["s"]})')
     p0 = st()['peeks']; pg.keyboard.press('z'); pg.wait_for_timeout(400)
     check(st()['s'] == 'peek' and st()['peeks'] == p0 - 1, f'{name}: peek')
     pg.wait_for_timeout(500); pg.screenshot(path=f'{OUT}/{name}-peek.png')
@@ -89,7 +89,7 @@ def run(p, name, w, h, mobile):
     pg.screenshot(path=f'{OUT}/{name}-endless-6x5.png')
     pg.goto(BASE); pg.wait_for_timeout(3500)
     check(pg.is_visible('#btn-continue'), f'{name}: CONTINUE offered after reload')
-    pg.goto(BASE + '?demo=1'); pg.wait_for_timeout(22000)
+    pg.goto(BASE + '?demo=1'); pg.wait_for_timeout(35000)
     d = st(); mv = pg.evaluate('__recall.game.moves'); check(mv >= 1 or d['lv'] > 1, f'{name}: demo AI plays (moves {mv}, matched {d["m"]}, lv {d["lv"]})')
     pg.screenshot(path=f'{OUT}/{name}-demo.png')
     check(not errs, f'{name}: zero console errors {errs[:3]}')

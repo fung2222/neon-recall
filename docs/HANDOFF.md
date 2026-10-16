@@ -1,6 +1,6 @@
 # NEON RECALL 霓虹記憶 — Handoff
 
-Status: **web build done (v1.0)** · live https://fung2222.github.io/neon-recall/ · not yet packaged for Android.
+Status: **web build v1.2 — polish + modifiers** · live https://fung2222.github.io/neon-recall/ · not yet packaged for Android.
 Series rules: see `fung2222/cyber-arcade/docs/ARCADE-HANDOFF.md` (never port sono code, AdMob policy, naming). Concept only from SONO's broken 記憶配對; all code is new.
 
 ## 1. Design
@@ -48,15 +48,16 @@ js/config.js      constants
 js/logic.js       RecallGame: deck, flip/match/miss, hideMiss + glitch swap, stars (pure, unit-tested)
 js/icons.js       16 canvas-drawn neon icons -> CanvasTexture
 js/cards.js       CardTable: table slab + surface shader, CardView (back/front shaders), flip/match/miss/swap anims, picking
-js/audio.js       RecallAudio (cyber-kit SynthAudio, 'chill' music)
-js/main.js        states attract/preview/playing/peek/paused/clear, input + raycast, AI, camera, saves, ads hooks
-vendor/cyber-kit  cyber-kit v0.1.0
+js/audio.js       RecallAudio (tiered match/combo/overload/ambient; chill music)
+js/polish.js      ComboAura, EchoHint, flipTrail
+js/main.js        states attract/preview/playing/peek/paused/clear, modifiers, overload peek, echo hint, input + raycast, AI, camera, saves, ads hooks
+vendor/cyber-kit  cyber-kit v0.3.7
 tests/            logic.test.mjs, smoke.py
 ```
 Test hook: `window.__recall` (`state, level, game, peeks, api.level/flip/peek/screenOf/clearNow`).
 
 ## 5. Tests
-`node tests/logic.test.mjs` (6 rule tests) · `python tests/smoke.py [url] [out]` — real taps on projected card positions at 412×915 (touch) and 1280×800: preview→playing, match, miss, level clear + stars, next level, peek, pause/resume, continue after reload, demo AI, language toggle/persist, endless level 10 milestone → 11 and 6×5 grid at 12, zero console errors.
+`node tests/logic.test.mjs` (11 rule tests incl. modifiers / wild / surge / overload / drift) · `python tests/smoke.py [url] [out]` — real taps on projected card positions at 412×915 (touch) and 1280×800: preview→playing, match, miss, level clear + stars, next level, peek, pause/resume, continue after reload, demo AI, language toggle/persist, endless level 10 milestone → 11 and 6×5 grid at 12, zero console errors.
 Last run 2026-10-02 (v1.1): logic 6/6, smoke ALL PASSED.
 
 ## 6. Android packaging
@@ -76,3 +77,39 @@ Target audience 13+ (card games look kid-friendly — do not opt into Families).
 ## Audio loudness + glow (cyber-kit v0.3.0, 2026-10-03)
 - Audio: kit loudness model (music ≈ −20 LUFS integrated, median SFX ≈ music level). This game: music 'chill', sfxTrimDb -3.3 in `js/audio.js`. Re-measure after changing sounds: `python3 ../cyber-kit/tests/loudness.py http://127.0.0.1:18940 <dir>:<AudioClass> --kit /cyber-kit` (see kit docs/API.md "Loudness"). Keep music −20 ± 1 LUFS and SFX/BGM 0 ± 2 dB.
 - Glow: `createStage` values are the HIGH look; default is LOW (crisp). Shared pref `localStorage cyber.glow`, `?glow=low|high`. Pause screen has a GLOW: LOW/HIGH button (`ui.glowToggle(stage)`).
+
+## 9. Feel polish + gameplay twists (v1.2, 2026-10-17)
+Enhancement pass parallel to cyber-snake polish, plus two mechanical twists so endless memory-match stays distinct. **No timer, no lives, no new fail state.** Keep endless + hub `?hub=1` Arcade Menu.
+
+### Level modifiers (from Lv6, cycles)
+| Mod | Id | Effect |
+|---|---|---|
+| 雙生訊號 TWIN SIGNAL | `twin` | Flip a card → its twin's back pulses in icon colour (~0.6 s) |
+| 數據漂移 DATA DRIFT | `drift` | After each match, two face-down cards swap (toast + arc) |
+| 霓虹野卡 NEON WILD | `wild` | One pair uses the wild glyph; matching it = +200 pts + free 1.2 s full-board reveal |
+| 分數超頻 SCORE SURGE | `surge` | Match points ×1.5 this level; +1 peek at level start |
+
+Schedule: `modifierFor(level)` in `js/config.js` — `null` before Lv6, then `twin → drift → wild → surge` repeat. HUD mod chip + level banner show the active mod.
+
+### Overload Peek (risk-reward)
+- **Tap** Peek (Z) = normal 1.4 s reveal (−1 charge).
+- **Hold** Peek ~0.42 s, or press **X** = **OVERLOAD**: 2.2 s reveal (−1 charge) + next **2 matches score ×2**. A **miss** while overload remains **voids** the rest (toast + SFX). Meter on the Peek button.
+
+### Echo hint (QoL, default on)
+After a miss, the two cards keep a soft residual colour glow (~0.85 s) so you remember what you saw. Toggle **H** / HUD hint button; persist `localStorage cyber.neon-recall.echoHint` (`0` = off).
+
+### VFX / SFX polish
+- Match tiers: `normal` / `combo` / `perfect` (still 0 misses) / `clearing` (last pair) / `wild` — burst size, link power, popup class, SFX layers.
+- Combo aura ring + floating `COMBO ×N` toast; HUD combo goes hot at ≥2.
+- Flip trail particles on each flip; peek table scan sweep; soft idle pulse on unmatched backs after 2 s idle.
+- Ambient noise bed under chill music (`startAmbient` / `stopAmbient`).
+- **PERFECT SYNC** clear title + denser ring when `misses === 0` (VFX/copy only — stars already reward this).
+
+### Controls (additions)
+| Input | Action |
+|---|---|
+| Z / tap Peek | Normal peek |
+| Hold Peek / X | Overload peek |
+| H / hint button | Toggle echo hint |
+
+Shots: `/workspace/shots/recall-polish/`. Author commits as 嘉豐.

@@ -1,4 +1,5 @@
 import { RecallGame, makeRng } from '../js/logic.js';
+import { modifierFor, WILD_ICON, SURGE_MULT, WILD_BONUS, OVERLOAD_MATCHES } from '../js/config.js';
 import assert from 'node:assert/strict';
 let n = 0; const t = (name, fn) => { fn(); n++; console.log('ok -', name); };
 
@@ -15,4 +16,54 @@ t('perfect clear = 3 stars', () => { const g = new RecallGame({ rng: makeRng(5) 
 t('glitch swap keeps slots a permutation', () => { const g = new RecallGame({ rng: makeRng(6) }); g.setup(8); let swaps = 0;
   for (let k = 0; k < 40; k++) { const d = g.cards.filter(c => c.state === 'down'); const a = d[0], b = d.find(c => c.icon !== a.icon); g.flip(a.id); g.flip(b.id); const h = g.hideMiss(); if (h.swap) swaps++; }
   assert.ok(swaps > 3); const slots = g.cards.map(c => c.slot).sort((x, y) => x - y); assert.deepEqual(slots, [...Array(24).keys()]); });
+
+t('modifier cycle twin/drift/wild/surge', () => {
+  assert.equal(modifierFor(5), null);
+  assert.equal(modifierFor(6), 'twin');
+  assert.equal(modifierFor(7), 'drift');
+  assert.equal(modifierFor(8), 'wild');
+  assert.equal(modifierFor(9), 'surge');
+  assert.equal(modifierFor(10), 'twin');
+});
+t('wild pair present on wild levels', () => {
+  const g = new RecallGame({ rng: makeRng(11) }); g.setup(8);
+  assert.equal(g.mod, 'wild');
+  const wilds = g.cards.filter(c => c.icon === WILD_ICON);
+  assert.equal(wilds.length, 2);
+  g.flip(wilds[0].id); const r = g.flip(wilds[1].id);
+  assert.equal(r.type, 'match'); assert.equal(r.wild, true); assert.equal(r.tier, 'wild');
+  assert.equal(r.gained, 100 + WILD_BONUS);
+});
+t('surge multiplies match score', () => {
+  const g = new RecallGame({ rng: makeRng(12) }); g.setup(9);
+  assert.equal(g.mod, 'surge'); assert.equal(g.scoreMult, SURGE_MULT);
+  const a = g.cards[0]; const b = g.cards.find(c => c.icon === a.icon && c.id !== a.id);
+  g.flip(a.id); const r = g.flip(b.id);
+  assert.equal(r.gained, Math.round(100 * SURGE_MULT));
+});
+t('overload doubles then voids on miss', () => {
+  const g = new RecallGame({ rng: makeRng(13) }); g.setup(1);
+  g.armOverload(); assert.equal(g.overloadLeft, OVERLOAD_MATCHES);
+  const a = g.cards[0]; const b = g.cards.find(c => c.icon === a.icon && c.id !== a.id);
+  g.flip(a.id); const r = g.flip(b.id);
+  assert.equal(r.overload, true); assert.equal(r.gained, 200); assert.equal(g.overloadLeft, 1);
+  const c = g.cards.find(x => x.state === 'down'); const d = g.cards.find(x => x.state === 'down' && x.icon !== c.icon);
+  g.flip(c.id); const m = g.flip(d.id);
+  assert.equal(m.type, 'miss'); assert.equal(m.voided, true); assert.equal(g.overloadLeft, 0);
+});
+t('driftSwap swaps two face-down on drift mod', () => {
+  const g = new RecallGame({ rng: makeRng(14) }); g.setup(7);
+  assert.equal(g.mod, 'drift');
+  // match one pair first so drift can run after
+  const a = g.cards[0]; const b = g.cards.find(c => c.icon === a.icon && c.id !== a.id);
+  g.flip(a.id); g.flip(b.id);
+  const before = g.cards.filter(c => c.state === 'down').map(c => [c.id, c.slot]).sort((x, y) => x[0] - y[0]);
+  const swap = g.driftSwap();
+  assert.ok(swap); assert.equal(swap.length, 2);
+  const after = g.cards.filter(c => c.state === 'down').map(c => [c.id, c.slot]).sort((x, y) => x[0] - y[0]);
+  assert.notDeepEqual(before, after);
+  const slots = g.cards.map(c => c.slot).sort((x, y) => x - y);
+  assert.deepEqual(slots, [...Array(g.cards.length).keys()]);
+});
+
 console.log(`ALL PASSED (${n})`);
