@@ -445,6 +445,19 @@ $('btn-hint')?.addEventListener('click', (e) => { e.stopPropagation(); setHintUi
 }
 
 i18n.bindToggle($('btn-lang')); i18n.bindToggle($('btn-lang2'));
+
+ui.mountHowto({
+  onOpen: () => { try { audio.click(); } catch (_) {} },
+  getContent: () => ({
+    kicker: 'NEON RECALL',
+    title: t('kit.howto'),
+    sections: [
+      { heading: t('kit.rules'), body: t('help.rules') },
+      { heading: t('kit.controls'), body: t('help.controls') },
+    ],
+  }),
+});
+
 i18n.onChange(() => { updateHUD(); if (S.state === 'attract') refreshStart(); });
 ui.on('btn-next', nextLevel); ui.on('btn-replay', replayLevel); ui.on('btn-menu', clearToMenu);
 Platform.onBack(() => {

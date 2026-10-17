@@ -48,4 +48,7 @@ i18n.add({
   'icon.planet': ['行星', 'PLANET'], 'icon.crystal': ['水晶', 'CRYSTAL'], 'icon.key': ['密鑰', 'KEY'], 'icon.note': ['音符', 'NOTE'],
   'icon.moon': ['月亮', 'MOON'], 'icon.drone': ['無人機', 'DRONE'], 'icon.tram': ['叮叮', 'DING-DING TRAM'], 'icon.umbrella': ['雨傘', 'UMBRELLA'],
   'icon.wild': ['霓虹野卡', 'NEON WILD'],
+
+  'help.rules': ['<ul><li>記住發光卡牌位置，翻兩張相同即配對。</li><li><strong>冇計時、冇命數</strong>。關卡無盡；星級睇 miss 次數。</li><li>第 6 關起循環<strong>修飾</strong>：雙生訊號／數據漂移／霓虹野卡／分數超頻。</li><li><strong>透視</strong>（Z）：短暫全開；<strong>長按／X＝超載透視</strong>（更長＋下兩次配對×2，miss 會取消）。</li><li><strong>回聲提示</strong>（H）：miss 後殘留顏色方便記憶。</li></ul>', '<ul><li>Memorise the neon cards; flip two matches.</li><li><strong>No timer, no lives.</strong> Endless levels; stars from miss count.</li><li>From Lv6, cycling <strong>mods</strong>: Twin / Drift / Wild / Surge.</li><li><strong>Peek</strong> (Z): brief reveal; <strong>hold / X = Overload Peek</strong> (longer + next 2 matches ×2; miss voids it).</li><li><strong>Echo hint</strong> (H): residual colour after a miss.</li></ul>'],
+  'help.controls': ['<ul><li>撳卡／滑鼠 · 方向鍵＋Enter／Space 翻牌</li><li>透視 <kbd>Z</kbd> · 超載長按透視／<kbd>X</kbd></li><li>提示 <kbd>H</kbd> · 暫停 <kbd>P</kbd> · 靜音 <kbd>M</kbd> · 重開關 <kbd>R</kbd></li></ul>', '<ul><li>Tap card / mouse · arrows + Enter/Space to flip</li><li>Peek <kbd>Z</kbd> · Overload hold Peek / <kbd>X</kbd></li><li>Hint <kbd>H</kbd> · Pause <kbd>P</kbd> · Mute <kbd>M</kbd> · Restart <kbd>R</kbd></li></ul>'],
 });
