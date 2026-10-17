@@ -447,6 +447,7 @@ $('btn-hint')?.addEventListener('click', (e) => { e.stopPropagation(); setHintUi
 i18n.bindToggle($('btn-lang')); i18n.bindToggle($('btn-lang2'));
 
 ui.mountHowto({
+  privacyUrl: './privacy.html',
   onOpen: () => { try { audio.click(); } catch (_) {} },
   getContent: () => ({
     kicker: 'NEON RECALL',
@@ -457,6 +458,11 @@ ui.mountHowto({
     ],
   }),
 });
+ui.mountSettings({
+  audio, stage,
+  onOpen: () => { try { audio.click(); } catch (_) {} },
+});
+
 
 i18n.onChange(() => { updateHUD(); if (S.state === 'attract') refreshStart(); });
 ui.on('btn-next', nextLevel); ui.on('btn-replay', replayLevel); ui.on('btn-menu', clearToMenu);
