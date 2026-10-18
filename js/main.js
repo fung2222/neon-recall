@@ -1,7 +1,9 @@
 // NEON RECALL 霓虹記憶 — controller: levels, preview, flips, matches, glitch swaps, peek, stars, demo AI, camera, saves.
 // v1.2 polish + modifiers (twin/drift/wild/surge) + overload peek + echo hint.
 import * as THREE from 'three';
-import { i18n, t, themeLabel, flags, createStore, createStage, ThemeController, themeFor, U, Particles, Shockwaves, FxState, NeonCity, createInput, CyberUI, Platform, createAds, readHub, returnToHub, shouldShowArcadeMenu} from 'cyber-kit';
+import { i18n, t, themeLabel, flags, createStore, createStage, ThemeController, themeFor, U, Particles, Shockwaves, FxState, NeonCity, createInput, CyberUI, Platform, createAds, readHub, returnToHub, shouldShowArcadeMenu,
+  ViewInput, defaultView, clampView, dampView
+} from 'cyber-kit';
 import { GAME_ID, previewFor, PEEK_START, PEEK_EVERY, PEEK_REWARD, PEEK_TIME, OVERLOAD_PEEK_TIME, OVERLOAD_HOLD_MS, T_FLIP, T_MISS_HOLD, AI_STEP, AI_FORGET, BOARD_Y, ADS, LAYOUTS, MILESTONE_EVERY, milestoneReward, SURGE_PEEK_BONUS, WILD_REVEAL, modifierFor } from './config.js';
 import './strings.js';
 import { RecallGame, makeRng } from './logic.js';
@@ -336,14 +338,14 @@ async function nextLevel() { if (S.state !== 'clear') return; audio.click(); awa
 async function replayLevel() { if (S.state !== 'clear') return; S.milestone = null; audio.click(); S.game.score -= S.game.levelScore; await ads.naturalBreak('level'); startLevel(S.level); }
 async function clearToMenu() { if (S.state !== 'clear') return; await ads.naturalBreak('level'); showAttract(); }
 
-function beginRun(resume) {
+function beginRun(resume) { resetPlayView(true);
   audio.init(); audio.startMusic(); audio.unduckMusic();
   const p = resume ? loadProgress() : null;
   S.game.score = p ? p.score : 0; S.peeks = p ? p.peeks : PEEK_START;
   startLevel(p ? p.level : (flags.level || 1));
   audio.confirm();
 }
-function showAttract() { startLevel(2 + Math.floor(Math.random() * 3), { attract: true }); refreshStart(); setState('attract'); audio.unduckMusic(); }
+function showAttract() { resetPlayView(true); startLevel(2 + Math.floor(Math.random() * 3), { attract: true }); refreshStart(); setState('attract'); audio.unduckMusic(); }
 function pause() { if (!['playing', 'preview', 'peek'].includes(S.state)) return; S.pausedFrom = S.state; setState('paused'); audio.duckMusic(); audio.back(); }
 function resume() { if (S.state !== 'paused') return; setState(S.pausedFrom || 'playing'); audio.unduckMusic(); audio.click(); }
 function toMenu() { saveProgress(); audio.back(); showAttract(); }
@@ -477,17 +479,39 @@ Platform.onPause(() => { saveProgress(); if (!S.demo) pause(); });
 S.api = { level: (n) => { S.timers = []; startLevel(n); }, flip: (id) => tryFlip(id), peek, overloadPeek, screenOf: (id) => stage.toScreen(table.worldPos(id)), clearNow: () => { for (const c of S.game.cards) if (c.state !== 'matched') { c.state = 'matched'; } S.game.matched = S.game.pairs; levelClear(); } };
 
 const camPos = new THREE.Vector3(0, 20, 14), camLook = new THREE.Vector3(0, BOARD_Y, 0), tP = new THREE.Vector3(), tL = new THREE.Vector3();
+const pView = defaultView(), pViewC = defaultView();
+let viewPitch = 1.0, viewExt = [4, 4];
+const inMatch = () => ['playing', 'preview', 'peek', 'paused'].includes(S.state) && !S.demo;
+const gesturesOn = () => inMatch() && !ui.modalOpen;
+function resetPlayView(instant = true) { Object.assign(pView, defaultView()); if (instant) Object.assign(pViewC, defaultView()); }
+new ViewInput($('scene'), {
+  enabled: gesturesOn,
+  zoom: (f) => { pView.zoom *= f; clampView(pView, viewPitch, viewExt); },
+  twist: (d) => { pView.az += d; clampView(pView, viewPitch, viewExt); },
+  pan: (x0, y0, x1, y1) => { const k = 0.01; pView.px += (x0 - x1) * k; pView.pz += (y0 - y1) * k; clampView(pView, viewPitch, viewExt); },
+  orbit: (dAz, dEl) => { pView.az += dAz; pView.el += dEl; clampView(pView, viewPitch, viewExt); },
+}, { oneFingerOrbit: false });
+
 function frameCamera(dt, now, instant = false) {
   const aspect = stage.width / stage.height, portrait = aspect < 0.9, attract = S.state === 'attract';
+  const useView = inMatch();
+  if (!useView) resetPlayView(true);
   const vfov = portrait ? 50 : 42; camera.fov = vfov + fx.fovKick * 3; camera.updateProjectionMatrix();
-  const pitch = THREE.MathUtils.degToRad(attract ? (portrait ? 52 : 42) : (portrait ? 66 : 60));
+  let pitch = THREE.MathUtils.degToRad(attract ? (portrait ? 52 : 42) : (portrait ? 66 : 60));
+  viewPitch = pitch;
   const hw = table.halfW + 0.3, hd = table.halfD + 0.3;
+  viewExt = [hw, hd];
   const tanV = Math.tan(THREE.MathUtils.degToRad(vfov / 2)), tanH = tanV * aspect;
   const usable = portrait ? 0.62 : 0.72;
   const dW = hw / (tanH * (portrait ? 0.96 : 0.9)) + hd * Math.cos(pitch);
   const dH = hd * Math.sin(pitch) / (tanV * usable) + hd * Math.cos(pitch);
   let d = Math.max(dW, dH), yaw = Math.sin(now * 0.13) * 0.03, lx = 0, lz = portrait ? -0.3 : 0;
   if (attract) { yaw = Math.sin(now * 0.12) * 0.4; d *= portrait ? 1.1 : 1.3; if (!portrait) lx = -hw * 0.95; else lz = hd * 0.5; }
+  if (useView) {
+    clampView(pView, viewPitch, viewExt);
+    if (!instant) dampView(pViewC, pView, Math.max(dt, 1 / 120)); else Object.assign(pViewC, pView);
+    yaw += pViewC.az; pitch = viewPitch + pViewC.el; d *= pViewC.zoom; lx += pViewC.px; lz += pViewC.pz;
+  }
   tL.set(lx, BOARD_Y, lz);
   tP.set(Math.sin(yaw) * Math.cos(pitch) * d, Math.sin(pitch) * d, Math.cos(yaw) * Math.cos(pitch) * d).add(tL);
   if (attract && !portrait) tP.x += lx;
