@@ -1,8 +1,18 @@
 # NEON RECALL — deep audit (2026-11-02)
 
-Status: **read-only audit; no gameplay code changed.**  
+Status: **all three findings fixed in the 2026-11-02 deep-pass commit; read-only audit remains below.**  
 Scope: `neon-recall` v0.3.13, 360 / 390 / 412 px, Playwright + pure-logic tests.  
 Purpose: find player-experience, feel, rule and audio problems with evidence, then fix one item per commit.
+
+## Fix status (2026-11-02)
+
+| # | Finding | Result |
+|---|---|---|
+| 1 | Continuous BGM hiss | ambient bed removed; `NEON_CHILL` has no noise hats/snare and `playStep` is fully tonal. Loudness: music −20.3 LUFS, SFX median −20.5, peak −1.6 dBFS. |
+| 2 | PEEK farming | surge PEEK once per entry (`surgeAwarded` persisted); every-3-level PEEK first-clear only. `tests/rewards.py` passes. |
+| 3 | Best score before milestone | `submitBest` moved after milestone scoring. `tests/rewards.py` checks stored best equals final score. |
+
+Commit: `147eb9a`. Regression tests: `node tests/logic.test.mjs` 12/12, `python tests/rewards.py` all pass, 390 match test no console errors.
 
 ## Baseline checked
 
@@ -57,13 +67,10 @@ Fix direction: award the surge peek once per level entry (or once per run), and 
 - Match feedback, combo HUD, progress bar and card states are readable.
 - Pure logic tests cover slides, stars, modifiers, glitch swaps and preview timing.
 
-## Not changed in this pass
+## Audit vs fixes
 
-No gameplay, CSS, strings or audio files were modified. This commit is the audit only, so each fix can be reviewed separately.
+The audit itself changed no gameplay code; the three fixes are in `147eb9a`, so they can be reverted separately from this report.
 
-## Suggested next sequence
+## Follow-up
 
-1. Clean the chill BGM (remove ambient hiss and noise hats/snare).
-2. Fix PEEK farming on restart/replay.
-3. Move `submitBest` after milestone scoring.
-4. Watch level-1 preview pacing on a real phone.
+Watch level-1 preview pacing on a real phone. The clean BGM still needs a real headphone listen; loudness and noise layers are fixed, but taste is subjective.
