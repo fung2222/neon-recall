@@ -44,4 +44,4 @@ cd .. && python3 -m http.server 18940     # 開 http://127.0.0.1:18940/neon-reca
 node neon-recall/tests/logic.test.mjs
 python neon-recall/tests/smoke.py
 ```
-文件：[docs/HANDOFF.md](docs/HANDOFF.md) · [privacy.html](privacy.html) · 屬於 [CYBER ARCADE](https://github.com/fung2222/cyber-arcade) 系列。
+文件：[docs/HANDOFF.md](docs/HANDOFF.md) · [docs/DEEP-AUDIT-2026-11-02.md](docs/DEEP-AUDIT-2026-11-02.md) · [privacy.html](privacy.html) · 屬於 [CYBER ARCADE](https://github.com/fung2222/cyber-arcade) 系列。

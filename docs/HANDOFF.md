@@ -3,6 +3,8 @@
 Status: **web build v0.3.13 — polish + modifiers** · live https://fung2222.github.io/neon-recall/ · not yet packaged for Android.
 Series rules: see `fung2222/cyber-arcade/docs/ARCADE-HANDOFF.md` (never port sono code, AdMob policy, naming). Concept only from SONO's broken 記憶配對; all code is new.
 
+**Deep audit 2026-11-02:** read `docs/DEEP-AUDIT-2026-11-02.md` before changing BGM audio, PEEK rewards, or the level-clear best score.
+
 ## 1. Design
 - 3D holo cards on a floating table over the neon city. Backs: animated circuit pattern in the zone colours; fronts: 16 original neon line icons (canvas-drawn: chip, bolt, eye, cat, lantern, ramen, rocket, heart, planet, crystal, key, note, moon, drone, tram 叮叮, umbrella).
 - **Level start preview**: all cards face-up for `previewWindow(level)` seconds (`previewFor(level)` + 0.7 s reveal + 2.1 s for the level banner), then flip down in a wave. The banner hold is included so the banner never eats the memory window.
