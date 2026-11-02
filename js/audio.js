@@ -1,8 +1,10 @@
-// NEON RECALL sounds — soft, airy, all synthesised. Polish: tiered match, combo, overload, ambient bed.
-import { SynthAudio, mtof } from 'cyber-kit/audio/synth.js';
+// NEON RECALL sounds — soft, airy, all synthesised. Clean chill BGM + tiered match SFX.
+import { SynthAudio, mtof, MUSIC } from 'cyber-kit/audio/synth.js';
 const PENTA = [0, 2, 4, 7, 9, 12, 14, 16];
+// Clean chill loop: no noise hats, no noise snare, no ambient hiss.
+const NEON_CHILL = { ...MUSIC.chill, hats: false };
 export class RecallAudio extends SynthAudio {
-  constructor(store) { super({ store, music: 'chill', sfxTrimDb: -3.3 }); this._amb = null; }
+  constructor(store) { super({ store, music: NEON_CHILL, sfxTrimDb: -3.3 }); }
 
   flip() {
     this.noiseHit({ dur: 0.07, vol: 0.04, type: 'bandpass', f: 2600, f2: 5200, q: 2, a: 0.004 });
@@ -65,33 +67,33 @@ export class RecallAudio extends SynthAudio {
   star(i) { this.osc({ type: 'triangle', f: mtof(76 + i * 4), dur: 0.3, vol: 0.09, send: 0.4 }); }
   modChime() { this.osc({ type: 'sine', f: 520, f2: 1040, dur: 0.25, vol: 0.05, send: 0.4 }); this.osc({ type: 'triangle', f: 780, t: 0.06, dur: 0.18, vol: 0.04 }); }
 
-  startAmbient() {
-    if (!this.ctx || this._amb) return;
-    const ctx = this.ctx;
-    const src = ctx.createBufferSource(); src.buffer = this.noise; src.loop = true;
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 420; bp.Q.value = 0.55;
-    const g = ctx.createGain(); g.gain.value = 0.0001;
-    src.connect(bp); bp.connect(g); g.connect(this.sfx);
-    src.start();
-    g.gain.setTargetAtTime(0.016, ctx.currentTime, 0.9);
-    this._amb = { src, g };
-  }
-  stopAmbient(fade = 0.5) {
-    if (!this._amb) return;
-    const { src, g } = this._amb;
-    const t = this.ctx.currentTime;
-    g.gain.cancelScheduledValues(t);
-    g.gain.setTargetAtTime(0.0001, t, fade / 3);
-    setTimeout(() => { try { src.stop(); } catch (e) {} }, fade * 1000 + 200);
-    this._amb = null;
-  }
-
-  startMusic() {
-    super.startMusic();
-    this.startAmbient();
-  }
-  stopMusic(fade = 0.5) {
-    this.stopAmbient(fade);
-    super.stopMusic(fade);
+  /** Clean chill loop: pitched kick, tonal backbeat, bass, pad and sparse arp. No noise layer. */
+  playStep(step, time, s16) {
+    const ctx = this.ctx, out = this.musicFilter, P = this.preset;
+    const t = time - ctx.currentTime; if (t < -0.01) return;
+    const bar = Math.floor(step / 16) % 4, s = step % 16;
+    const root = P.roots[bar], chord = P.chords[bar];
+    const kickOn = P.kick === 'four' ? s % 4 === 0 : (s === 0 || s === 10);
+    if (kickOn) {
+      this.osc({ type: 'sine', f: 150, f2: 42, t, dur: 0.28, vol: P.kick === 'four' ? 0.55 : 0.38, out });
+      this.osc({ type: 'triangle', f: 900, f2: 120, t, dur: 0.02, vol: 0.07, out });
+    }
+    if (s === 4 || s === 12) {
+      // Tonal brush marks the backbeat without a noise snare.
+      this.osc({ type: 'triangle', f: 180, f2: 130, t, dur: 0.06, vol: 0.05, out });
+      this.osc({ type: 'square', f: 500, f2: 320, t, dur: 0.022, vol: 0.011, lp: 1600, out });
+    }
+    if (P.bass === 'roots' && (s === 0 || s === 8 || s === 14)) {
+      this.osc({ type: 'triangle', f: mtof(root - 12), t, dur: s16 * (s === 14 ? 2 : 6), vol: 0.2, a: 0.01, out });
+    } else if (P.bass === 'eighths' && s % 2 === 0) {
+      this.osc({ type: 'sawtooth', f: mtof(root - 12), t, dur: s16 * 1.8, vol: 0.14, lp: 520, q: 4, a: 0.004, out });
+    }
+    if (s === 0) chord.forEach(iv => {
+      for (const det of [-9, 9]) this.osc({ type: 'sawtooth', f: mtof(root + 12 + iv), t, dur: s16 * 16, vol: P.pad, a: 0.35, lp: 1100, detune: det, out });
+    });
+    if (P.arp === 'sparse' && s % 3 === 0) {
+      const iv = chord[(s / 3 + bar) % chord.length] + 12;
+      this.osc({ type: 'sine', f: mtof(root + 24 + iv), t, dur: s16 * 2.5, vol: 0.032, a: 0.01, out, send: 0.45 });
+    }
   }
 }

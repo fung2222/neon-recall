@@ -9,7 +9,7 @@ import './strings.js';
 import { RecallGame, makeRng } from './logic.js';
 import { CardTable } from './cards.js';
 import { ICONS } from './icons.js';
-import { RecallAudio } from './audio.js';
+import { RecallAudio } from './audio.js?v=0.3.13d';
 import { ComboAura, EchoHint, flipTrail } from './polish.js';
 
 const $ = (id) => document.getElementById(id);
@@ -37,7 +37,7 @@ const S = {
   game: new RecallGame(flags.seed != null ? { rng: makeRng(flags.seed) } : {}),
   level: 1, peeks: PEEK_START, timers: [], missT: 0, stateT: 0, levelTime: 0, aiT: 0, mem: new Map(), aiPlan: -1,
   cursor: 0, portrait: stage.width / stage.height < 0.9, pausedFrom: null,
-  idleT: 0, wildReveal: false,
+  idleT: 0, wildReveal: false, surgeAwarded: new Set(),
 };
 window.__recall = S;
 const later = (delay, fn) => S.timers.push({ t: delay, fn });
@@ -45,7 +45,7 @@ const isPortrait = () => stage.width / stage.height < 0.9;
 
 const getStars = () => store.getJSON('stars', {}) || {};
 const totalStars = () => Object.values(getStars()).reduce((a, b) => a + b, 0);
-function saveProgress() { if (S.demo) return; store.setJSON('progress', { v: 1, level: S.level, score: S.game.score, peeks: S.peeks }); }
+function saveProgress() { if (S.demo) return; store.setJSON('progress', { v: 1, level: S.level, score: S.game.score, peeks: S.peeks, surgeAwarded: [...S.surgeAwarded] }); }
 const loadProgress = () => { const p = store.getJSON('progress'); return p && p.v === 1 && p.level >= 1 ? p : null; };
 
 function setHintUi(on) { const b = $('btn-hint'); if (b) b.classList.toggle('off', !on); }
@@ -120,7 +120,10 @@ function startLevel(level, { attract = false } = {}) {
   table.setup(S.game, S.portrait, true);
   theme.set(level); audio.setLevel(level);
   S.cursor = 0; table.setHover(-1);
-  if (S.game.mod === 'surge' && !attract && !S.demo) S.peeks += SURGE_PEEK_BONUS;
+  if (S.game.mod === 'surge' && !attract && !S.demo && !S.surgeAwarded.has(level)) {
+    S.surgeAwarded.add(level);
+    S.peeks += SURGE_PEEK_BONUS;
+  }
   if (attract) { S.state = 'attract'; S.previewT = 2.2; S.aiT = -1; memorise(0.5); return; }
   setState('preview'); S.previewT = previewWindow(level);
   const mb = modBanner(level);
@@ -312,12 +315,14 @@ function levelClear() {
   city.pulse(0, -6, 2);
   if (S.demo) { later(2.2, () => startLevel(S.level >= 5 ? 1 : S.level + 1)); setState('playing'); return; }
   const rec = getStars(); if ((rec[S.level] || 0) < stars) { rec[S.level] = stars; store.setJSON('stars', rec); }
-  store.submitBest(g.score);
   const firstClear = S.level + 1 > store.getNum('maxLevel', 0);
   store.setNum('maxLevel', Math.max(store.getNum('maxLevel', 0), S.level + 1));
   S.clearInfo = { stars, bonus, perfect };
-  if (S.level % PEEK_EVERY === 0) { S.peeks++; ui.toast(t('peekPlus'), 1800); }
+  // Rewards are first-clear only: replaying the same level must not farm PEEK.
+  if (S.level % PEEK_EVERY === 0 && firstClear) { S.peeks++; ui.toast(t('peekPlus'), 1800); }
   if (S.level % MILESTONE_EVERY === 0 && firstClear) { const m = milestoneReward(S.level); g.score += m.pts; S.peeks += m.peeks; S.milestone = { n: S.level, ...m }; }
+  // Submit after milestone points, otherwise the stored best can lag the final score.
+  store.submitBest(g.score);
   const lv = S.level; S.level = lv + 1; saveProgress(); S.level = lv;
   later(0.85, () => {
     ui.setText('clear-kicker', t('clearKicker', { n: S.level, bonus }));
@@ -342,6 +347,7 @@ function beginRun(resume) { resetPlayView(true);
   audio.init(); audio.startMusic(); audio.unduckMusic();
   const p = resume ? loadProgress() : null;
   S.game.score = p ? p.score : 0; S.peeks = p ? p.peeks : PEEK_START;
+  S.surgeAwarded = new Set(p && Array.isArray(p.surgeAwarded) ? p.surgeAwarded : []);
   startLevel(p ? p.level : (flags.level || 1));
   audio.confirm();
 }

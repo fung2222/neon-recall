@@ -59,7 +59,7 @@ tests/            logic.test.mjs, smoke.py
 Test hook: `window.__recall` (`state, level, game, peeks, api.level/flip/peek/screenOf/clearNow`).
 
 ## 5. Tests
-`node tests/logic.test.mjs` (12 rule tests incl. modifiers / wild / surge / overload / drift / preview window) · `python tests/smoke.py [url] [out]` — real taps on projected card positions at 412×915 (touch) and 1280×800: preview→playing, match, miss, level clear + stars, next level, peek, pause/resume, continue after reload, demo AI, language via gear settings, endless level 10 milestone → 11 and 6×5 grid at 12, zero console errors.
+`node tests/logic.test.mjs` (12 rule tests incl. modifiers / wild / surge / overload / drift / preview window) · `python tests/smoke.py [url] [out]` — real taps on projected card positions at 412×915 (touch) and 1280×800: preview→playing, match, miss, level clear + stars, next level, peek, pause/resume, continue after reload, demo AI, language via gear settings, endless level 10 milestone → 11 and 6×5 grid at 12, zero console errors. · `python tests/rewards.py [url]` — surge PEEK is once per entry, every-3-level PEEK is first-clear only, stored best includes milestone points.
 Last run 2026-11-02 (v0.3.13): logic 12/12; targeted preview check at level 6 passed (banner gone, cards still face-up). Full smoke is slow under software WebGL; run with screenshots skipped if needed.
 
 ## 6. Android packaging
@@ -77,7 +77,8 @@ Target audience 13+ (card games look kid-friendly — do not opt into Families).
 - Ideas: daily seeded board, icon packs per zone, colour-blind mode (icons are already distinct shapes).
 
 ## Audio loudness + glow (cyber-kit v0.3.0, 2026-10-03)
-- Audio: kit loudness model (music ≈ −20 LUFS integrated, median SFX ≈ music level). This game: music 'chill', sfxTrimDb -3.3 in `js/audio.js`. Re-measure after changing sounds: `python3 ../cyber-kit/tests/loudness.py http://127.0.0.1:18940 <dir>:<AudioClass> --kit /cyber-kit` (see kit docs/API.md "Loudness"). Keep music −20 ± 1 LUFS and SFX/BGM 0 ± 2 dB.
+- Audio: kit loudness model (music ≈ −20 LUFS integrated, median SFX ≈ music level). This game uses a clean `NEON_CHILL` preset and `sfxTrimDb -3.3` in `js/audio.js`. Re-measure after changing sounds: `python3 ../cyber-kit/tests/loudness.py http://127.0.0.1:18940 <dir>:<AudioClass> --kit /cyber-kit` (see kit docs/API.md "Loudness"). Keep music −20 ± 1 LUFS and SFX/BGM 0 ± 2 dB.
+- 2026-11-02 sound/BGM pass: removed the looping ambient noise bed, noise hats and noise snare. `RecallAudio.playStep` now uses a pitched kick, tonal backbeat, triangle bass, pad and sparse sine arp. Measured: music **−20.3 LUFS**, median SFX **−20.5 LUFS** (`−0.2 dB`), peak **−1.6 dBFS**. No continuous hiss layer.
 - Glow: `createStage` values are the HIGH look; default is LOW (crisp). Shared pref `localStorage cyber.glow`, `?glow=low|high`. Pause screen has a GLOW: LOW/HIGH button (`ui.glowToggle(stage)`).
 
 ## 9. Feel polish + gameplay twists (v1.2, 2026-10-17)
