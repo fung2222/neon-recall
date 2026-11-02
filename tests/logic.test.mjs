@@ -1,5 +1,5 @@
 import { RecallGame, makeRng } from '../js/logic.js';
-import { modifierFor, WILD_ICON, SURGE_MULT, WILD_BONUS, OVERLOAD_MATCHES } from '../js/config.js';
+import { modifierFor, WILD_ICON, SURGE_MULT, WILD_BONUS, OVERLOAD_MATCHES, previewWindow, LEVEL_BANNER_HOLD } from '../js/config.js';
 import assert from 'node:assert/strict';
 let n = 0; const t = (name, fn) => { fn(); n++; console.log('ok -', name); };
 
@@ -64,6 +64,12 @@ t('driftSwap swaps two face-down on drift mod', () => {
   assert.notDeepEqual(before, after);
   const slots = g.cards.map(c => c.slot).sort((x, y) => x - y);
   assert.deepEqual(slots, [...Array(g.cards.length).keys()]);
+});
+
+t('level preview outlasts the level banner', () => {
+  for (let level = 1; level <= 60; level++) {
+    assert.ok(previewWindow(level) >= LEVEL_BANNER_HOLD + 0.7, `level ${level}: preview window ${previewWindow(level)}s must leave >= 0.7s after the ${LEVEL_BANNER_HOLD}s banner`);
+  }
 });
 
 console.log(`ALL PASSED (${n})`);

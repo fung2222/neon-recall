@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { i18n, t, themeLabel, flags, createStore, createStage, ThemeController, themeFor, U, Particles, Shockwaves, FxState, NeonCity, createInput, CyberUI, Platform, createAds, readHub, returnToHub, shouldShowArcadeMenu,
   ViewInput, defaultView, clampView, dampView
 } from 'cyber-kit';
-import { GAME_ID, previewFor, PEEK_START, PEEK_EVERY, PEEK_REWARD, PEEK_TIME, OVERLOAD_PEEK_TIME, OVERLOAD_HOLD_MS, T_FLIP, T_MISS_HOLD, AI_STEP, AI_FORGET, BOARD_Y, ADS, LAYOUTS, MILESTONE_EVERY, milestoneReward, SURGE_PEEK_BONUS, WILD_REVEAL, modifierFor } from './config.js';
+import { GAME_ID, previewWindow, PEEK_START, PEEK_EVERY, PEEK_REWARD, PEEK_TIME, OVERLOAD_PEEK_TIME, OVERLOAD_HOLD_MS, T_FLIP, T_MISS_HOLD, AI_STEP, AI_FORGET, BOARD_Y, ADS, LAYOUTS, MILESTONE_EVERY, milestoneReward, SURGE_PEEK_BONUS, WILD_REVEAL, modifierFor } from './config.js?v=0.3.13b';
 import './strings.js';
 import { RecallGame, makeRng } from './logic.js';
 import { CardTable } from './cards.js';
@@ -122,7 +122,7 @@ function startLevel(level, { attract = false } = {}) {
   S.cursor = 0; table.setHover(-1);
   if (S.game.mod === 'surge' && !attract && !S.demo) S.peeks += SURGE_PEEK_BONUS;
   if (attract) { S.state = 'attract'; S.previewT = 2.2; S.aiT = -1; memorise(0.5); return; }
-  setState('preview'); S.previewT = previewFor(level) + 0.7;
+  setState('preview'); S.previewT = previewWindow(level);
   const mb = modBanner(level);
   if (S.milestone) {
     const m = S.milestone; S.milestone = null;
